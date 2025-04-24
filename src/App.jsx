@@ -23,11 +23,7 @@ const Button = ({ value, onClick, bold = false, theme }) => {
 }
 
 function App() {
-  const [inputValue, setInputValue] = useState("0")
-  const [result, setResult] = useState(null)
-  const [operator, setOperator] = useState(null)
-  const [leftValue, setLeftValue] = useState(null)
-  const [rightValue, setRightValue] = useState(null)
+  const buttons = ['CE', 'C', '⌫', '÷', '1', '2', '3', 'x', '4', '5', '6', '—', '7', '8', '9', '+', '±', '0', '.', '=']
   const [theme, setTheme] = useState("light")
   const [history, setHistory] = useState([])
   const [conversion, setConversion] = useState([])
@@ -36,58 +32,88 @@ function App() {
   const [conversionTab, setConversionTab] = useState("currency")
   const [cryptoRates, setCryptoRates] = useState([])
   const [crypto, setCrypto] = useState(null)
+
+  const [values, setValues] = useState({
+    leftValue: null,
+    rightValue: null,
+    operator: null,
+    result: null,
+    inputValue: "0",
+  })
+
   const cryptos = ['BTC', 'ETH', 'LTC', 'XRP', 'DOGE', 'LTC', 'XMR', 'BCH']
   //clear the console
-  // console.clear()
-  console.log("operator: " + operator, "leftValue: " + leftValue, "rightValue: " + rightValue, "result: " + result, "inputValue: " + inputValue)
-
-  // console.log(leftValue)
+  console.log(values)
   const addNumber = (value) => {
-    if (inputValue === "0") {
-      setInputValue(value)
+    if (values?.inputValue === "0") {
+      setValues({
+        ...values,
+        inputValue: value,
+      })
     } else {
-      setInputValue(inputValue + value)
+      setValues({
+        ...values,
+        inputValue: values.inputValue + value,
+      })
     }
   }
 
   const handleOperator = (value) => {
-    if (!operator) {
-      setLeftValue(inputValue)
-      setOperator(value)
-      setInputValue("0")
+    if (!values?.operator) {
+      setValues({
+        ...values,
+        operator: value,
+        leftValue: values.inputValue,
+        inputValue: "0",
+      })
     } else {
-      if (!result) {
-        setRightValue(inputValue)
-        setOperator(value)
-        setInputValue("0")
+      if (!values.result) {
+        setValues({
+          ...values,
+          operator: value,
+          rightValue: values.inputValue,
+          inputValue: "0",
+        })
       } else {
-        setLeftValue(inputValue)
-        setOperator(value)
-        setRightValue(inputValue)
-        setInputValue("0")
-        setResult(null)
+        setValues({
+          ...values,
+          operator: value,
+          leftValue: values.inputValue,
+          rightValue: values.inputValue,
+          inputValue: "0",
+          result: null,
+        })
       }
     }
   }
 
   const makeDecimal = () => {
-    if (inputValue.toString().indexOf(".") === -1) {
-      setInputValue(inputValue + ".")
+    if (values.inputValue.toString().indexOf(".") === -1) {
+      setValues({
+        ...values,
+        inputValue: values.inputValue + ".",
+      })
     }
   }
 
   const handleAbsolute = () => {
-    if (inputValue != "0") {
-      if (inputValue < 0) {
-        setInputValue(Math.abs(inputValue))
-      } else if (inputValue > 0) {
-        setInputValue(-Math.abs(inputValue))
+    if (values.inputValue != "0") {
+      if (values.inputValue < 0) {
+        setValues({
+          ...values,
+          inputValue: Math.abs(values.inputValue),
+        })
+      } else if (values.inputValue > 0) {
+        setValues({
+          ...values,
+          inputValue: -Math.abs(values.inputValue),
+        })
       }
     }
   }
 
   const fetchConversion = async () => {
-    if (inputValue === "0") {
+    if (values.inputValue === "0") {
       return
     }
 
@@ -110,19 +136,90 @@ function App() {
 
 
   const handleDelete = () => {
-    if (inputValue.length > 1) {
-      setInputValue(inputValue.slice(0, -1))
+    if (values.inputValue.length > 1) {
+      setValues({
+        ...values,
+        inputValue: values.inputValue.slice(0, -1),
+      })
     } else {
-      setInputValue("0")
+      setValues({
+        ...values,
+        inputValue: "0",
+      })
     }
   }
 
   const clearEntry = () => {
-    setResult(null)
-    setOperator(null)
-    setLeftValue("0")
-    setRightValue("0")
-    setInputValue("0")
+    setValues({
+      ...values,
+      inputValue: "0",
+      leftValue: "0",
+      rightValue: "0",
+      operator: null,
+      result: null,
+    })
+  }
+
+  const buttonHandler = (item) => {
+    if (item === "CE") {
+      clearEntry()
+    } else if (item === "C") {
+      setValues({
+        ...values,
+        inputValue: "0",
+      })
+    } else if (item === "⌫") {
+      handleDelete()
+    } else if (item === "±") {
+      handleAbsolute()
+    } else if (item === "=") {
+      // calculate the result
+      if (!values.operator) {
+        return
+      }
+
+      if (values.leftValue && values.rightValue && values.result) {
+        return
+      }
+
+      const left = parseFloat(values.leftValue)
+      const right = parseFloat(values.inputValue)
+      let res = null
+      switch (values.operator) {
+        case "+":
+          res = left + right
+          break
+        case "-":
+          res = left - right
+          break
+        case "x":
+          res = left * right
+          break
+        case "÷":
+          res = left / right
+          break
+        default:
+          break
+      }
+      setHistory([...history, {
+        leftValue: values.leftValue,
+        operator: values.operator,
+        rightValue: values.inputValue,
+        result: res
+      }])
+      setValues({
+        ...values,
+        inputValue: res,
+        rightValue: values.inputValue,
+        result: res,
+      })
+    } else if (item === ".") {
+      makeDecimal()
+    } else if (item === "x" || item === "÷" || item === "-" || item === "+") {
+      handleOperator(item)
+    } else {
+      addNumber(item)
+    }
   }
 
   return (
@@ -160,7 +257,7 @@ function App() {
                 )
               }
                 onClick={() => {
-                  if (inputValue === "0") {
+                  if (values.inputValue === "0") {
                     return
                   }
 
@@ -195,7 +292,6 @@ function App() {
               </div>
             </div>
             <div>
-              {/** create 3 buttons, one yellow for minimizing, one gray and one red, the buttons must darken their colors on hover */}
               <div className='flex gap-2 items-center justify-center'>
                 <div className='bg-yellow-500 hover:bg-yellow-400 rounded-full p-1 cursor-pointer text-sm h-4 w-4'>
                 </div>
@@ -210,19 +306,19 @@ function App() {
             classNames(
               'border border-1 border-gray-300 p-4 text-right mb-4 screen font-bold text-3xl truncate pt-0',
               theme === "light" ? "bg-white text-black" : "bg-gray-800 text-white",
-              inputValue.length > 10 ? "text-sm" : "text-3xl",
+              values.inputValue.length > 10 ? "text-sm" : "text-3xl",
             )
           }>
             <div>
               {/* if the leftValue and the operator are set then show the operator */}
               <div className='text-sm mt-4 h-6'>
-                {operator !== null && leftValue !== "0" && (
+                {values.operator !== null && values.leftValue !== "0" && (
                   <span>
-                    {leftValue}&nbsp;{operator}&nbsp;
+                    {values.leftValue}&nbsp;{values.operator}&nbsp;
                     {
-                      rightValue !== "0" && result !== null && (
+                      values.rightValue !== "0" && values.result !== null && (
                         <span>
-                          {rightValue} =
+                          {values.rightValue} =
                         </span>
                       )
                     }
@@ -231,84 +327,24 @@ function App() {
               </div>
             </div>
             <span>
-              {inputValue}
+              {values.inputValue}
             </span>
           </div>
           <div className='flex items-center justify-center gap-2'>
-            <div className='grid grid-cols-3 gap-2'>
-              <Button theme={theme}
-                onClick={() => clearEntry()} value="CE" />
-              <Button theme={theme} onClick={() => clearEntry()} value="C" />
-              <Button theme={theme} onClick={() => handleDelete()} value="⌫" />
-              <Button theme={theme} onClick={() => addNumber("1")} value="1" />
-              <Button theme={theme} onClick={() => addNumber("2")} value="2" />
-              <Button theme={theme} onClick={() => addNumber("3")} value="3" />
-              <Button theme={theme} onClick={() => addNumber("4")} value="4" />
-              <Button theme={theme} onClick={() => addNumber("5")} value="5" />
-              <Button theme={theme} onClick={() => addNumber("6")} value="6" />
-              <Button theme={theme} onClick={() => addNumber("7")} value="7" />
-              <Button theme={theme} onClick={() => addNumber("8")} value="8" />
-              <Button theme={theme} onClick={() => addNumber("9")} value="9" />
-              <Button theme={theme} onClick={() => handleAbsolute()}
-                value="±" />
-              <Button theme={theme} onClick={() => addNumber("0")} value="0" />
-              <Button theme={theme} onClick={() => makeDecimal()}
-                value="." />
-            </div>
-            <div>
-              <div className='flex flex-col gap-2 font-bold'>
-                <Button theme={theme} onClick={() => {
-                  handleOperator("÷")
-                }} value="÷" />
-                <Button theme={theme} onClick={() => {
-                  handleOperator("x")
-                }} value="X" />
-                <Button theme={theme} onClick={() => {
-                  handleOperator("-")
-                }} value="—" />
-                <Button theme={theme} onClick={() => {
-                  handleOperator("+")
-                }} value="+" />
-                <Button theme={theme} onClick={() => {
-                  // calculate the result
-                  if (!operator) {
-                    return
-                  }
-
-                  if (leftValue && rightValue && result) {
-                    return
-                  }
-
-                  const left = parseFloat(leftValue)
-                  const right = parseFloat(inputValue)
-                  let res = null
-                  switch (operator) {
-                    case "+":
-                      res = left + right
-                      break
-                    case "-":
-                      res = left - right
-                      break
-                    case "x":
-                      res = left * right
-                      break
-                    case "÷":
-                      res = left / right
-                      break
-                    default:
-                      break
-                  }
-                  setHistory([...history, {
-                    leftValue: leftValue,
-                    operator: operator,
-                    rightValue: inputValue,
-                    result: res
-                  }])
-                  setResult(res)
-                  setRightValue(inputValue)
-                  setInputValue(res)
-                }} value="=" />
-              </div>
+            <div className='grid grid-cols-4 gap-2'>
+              {
+                buttons.map((item, index) => {
+                  return (
+                    <Button
+                      key={index}
+                      theme={theme}
+                      onClick={() => buttonHandler(item)}
+                      value={item}
+                      bold={item === "x" || item === "÷" || item === "-" || item === "+"}
+                    />
+                  )
+                })
+              }
             </div>
           </div>
           {
@@ -348,9 +384,9 @@ function App() {
                   theme === "light" ? "bg-white text-black" : "bg-gray-800 text-white",
                 )
               }>
-                <div className='flex justify-between gap-2'>
-                  <div className='p-3 cursor-pointer' onClick={() => setConversionTab('currency')}>Currency</div>
-                  <div className='p-3 cursor-pointer' onClick={() => setConversionTab('crypto')}>Crypto</div>
+                <div className='flex justify-between gap-2 py-2 pb-4'>
+                  <div className='p-3 cursor-pointer border border-1 border-black rounded-full' onClick={() => setConversionTab('currency')}>Currency</div>
+                  <div className='p-3 cursor-pointer border border-1 border-black rounded-full' onClick={() => setConversionTab('crypto')}>Crypto</div>
                 </div>
                 {
                   conversionTab === "currency" && (
@@ -358,9 +394,9 @@ function App() {
                       {
                         conversion.map((item, index) => {
                           return (
-                            <div key={index} className='flex justify-between items-center'>
+                            <div key={index} className='flex justify-between items-center border-b-1'>
                               <div className='text-sm'>
-                                {item.currency}: {(item.rate * inputValue).toFixed(0)}
+                                {item.currency}: {(item.rate * values.inputValue).toFixed(0)}
                               </div>
                             </div>
                           )
@@ -398,7 +434,7 @@ function App() {
                         crypto && (
                           <div className='p-2 mt-4 border border-1 rounded-lg'>
                             <div className='text-sm mb-4'>
-                              Rates for {inputValue} {crypto}:
+                              Rates for {values.inputValue} {crypto}:
                             </div>
                             <div className='flex flex-col gap-2'>
                               {
@@ -406,7 +442,7 @@ function App() {
                                   return (
                                     <div key={index} className='flex justify-between items-center'>
                                       <div className='text-sm'>
-                                        {item}: {(cryptoRates[item] * inputValue).toFixed(0)}
+                                        {item}: {(cryptoRates[item] * values.inputValue).toFixed(0)}
                                       </div>
                                     </div>
                                   )
@@ -416,7 +452,6 @@ function App() {
                           </div>
                         )
                       }
-
                     </div>
                   )
                 }
